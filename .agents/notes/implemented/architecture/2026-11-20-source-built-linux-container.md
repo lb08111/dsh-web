@@ -10,6 +10,8 @@ The local source deployment needs a reproducible Linux amd64 delivery that inclu
 
 The root Dockerfile builds the current workspace on Node 24.22.3 with the official DSH 0.2.2-rc.3 host. The runtime image contains the official host and the independent production closure created by pnpm deploy. The preparation step repairs the aggregate self-reference, verifies that dsh-ops is present, and pins every host-supplied SDK dependency to the same installed cohort. Credentials and local dependency trees are excluded from the build context.
 
+The workspace install uses an amd64-specific BuildKit pnpm store cache. It records the selected Node, libuv and pnpm versions and only the presence of Node IPC environment variables. The canonical install writes to a regular temporary log file, which is printed after the process finishes. Its original failure status still stops the build before compilation and packaging.
+
 Application state lives in `/data`, and work files live in `/workspace`. Startup creates the Web profile and mounts the packaged family. Existing real package directories remain intact; package symlinks are atomically refreshed to the current image's production paths. A fresh profile enables SSH, while subsequent profile settings persist.
 
 The DSH host binds container loopback. A public proxy checks the configured public Host and Origin, verifies the native signed browser-owner cookie by requesting the native index, and only then translates the request to the loopback authority. A launch-token navigation reaches the native index to establish that cookie. HTTP and WebSocket requests share the same owner check. An API peer credential grants no management access through this proxy.
@@ -29,3 +31,5 @@ The earlier [container-assets proposal](../../rejected/architecture/2026-09-13-r
 The artifact runs on Linux amd64 with a fixed host version. Model access and SSH secrets are configured after deployment and persist outside the image. Updates retain application state, while the image remains the authority for packaged plugin code. The deployment serves one configured browser origin and requires its value to follow address or proxy changes.
 
 The shared [loopback classification](../bug-fix/2026-10-19-reverse-proxy-loopback-fence.md) remains unchanged. The proxy owns its public authentication and same-origin decision, and only authenticated owner traffic is presented as local to the private listener. Native container health checks also detect a reachable Web shell whose management plugins failed to mount.
+
+The first amd64 build under ARM emulation completed pnpm package linking, then its install process exited with SIGABRT in libuv. The regular-file log output is a diagnostic change to test inherited standard I/O behavior, not a verified fix. Node and pnpm remain pinned, and unsuccessful installs are never accepted as complete.

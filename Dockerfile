@@ -13,7 +13,16 @@ RUN npm init --yes \
     && npm install --omit=dev --no-audit --no-fund "@deepseek-ai/dsh@${DSH_VERSION}"
 WORKDIR /opt/dsh/source
 COPY . .
-RUN pnpm run deps:install \
+RUN --mount=type=cache,id=dsh-web-pnpm-amd64,target=/root/.local/share/pnpm/store \
+    node -e 'console.log(JSON.stringify({ node: process.version, uv: process.versions.uv, channelFdPresent: Object.hasOwn(process.env, "NODE_CHANNEL_FD"), channelSerializationPresent: Object.hasOwn(process.env, "NODE_CHANNEL_SERIALIZATION_MODE") }))' \
+    && command -v pnpm \
+    && readlink -f "$(command -v pnpm)" \
+    && pnpm --version \
+    && { install_status=0; \
+         pnpm run deps:install >/tmp/dsh-deps-install.log 2>&1 || install_status=$?; \
+         cat /tmp/dsh-deps-install.log; \
+         rm /tmp/dsh-deps-install.log; \
+         if [ "$install_status" -ne 0 ]; then exit "$install_status"; fi; } \
     && pnpm build \
     && pnpm --ignore-scripts --filter @linxin666/dsh-web-all deploy --prod --legacy /opt/dsh/plugins \
     && node deploy/docker/prepare-runtime.mjs /opt/dsh/plugins /opt/dsh/runtime
