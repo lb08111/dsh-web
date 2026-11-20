@@ -141,11 +141,27 @@ export function OpsPanel({ controller, api }: OpsPanelProps) {
   }
 
   const taskTargets = (task: OpsTask): OpsServer[] => {
-    if (task.scope === 'single') {
-      const server = tree?.servers.find(entry => entry.id === task.serverId)
-      return server === undefined ? [] : [server]
+    const targetsOf = (candidate: OpsTask): OpsServer[] => {
+      if (candidate.scope === 'single') {
+        const server = tree?.servers.find(entry => entry.id === candidate.serverId)
+        return server === undefined ? [] : [server]
+      }
+      if (candidate.owner.kind === 'service') {
+        return tree?.servers.filter(server => server.serviceId === candidate.owner.id) ?? []
+      }
+      const serviceIds = new Set(tree?.services.filter(service => service.systemId === candidate.owner.id).map(service => service.id) ?? [])
+      return tree?.servers.filter(server => serviceIds.has(server.serviceId)) ?? []
     }
-    return tree?.servers.filter(server => server.serviceId === task.owner.id) ?? []
+    if (task.kind !== 'flow') return targetsOf(task)
+    const reachable = new Set<string>()
+    for (const step of task.steps ?? []) {
+      const referenced = tree?.tasks.find(entry => entry.id === step.taskId && entry.kind === 'script')
+      if (referenced === undefined) continue
+      for (const server of targetsOf(referenced)) {
+        if (step.serverIds === undefined || step.serverIds.includes(server.id)) reachable.add(server.id)
+      }
+    }
+    return tree?.servers.filter(server => reachable.has(server.id)) ?? []
   }
 
   const editingSystem = dialog?.kind === 'edit-system'

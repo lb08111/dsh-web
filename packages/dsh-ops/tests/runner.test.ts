@@ -248,11 +248,69 @@ describe('task runner', () => {
     const finished = await runner.wait(started.id)
 
     // Then both child runs succeeded, in declaration order, and the parent is ok
+    expect(finished?.error).toBeUndefined()
     expect(finished?.status).toBe('ok')
     expect(finished?.children?.map(child => child.status)).toEqual(['ok', 'ok'])
     expect(transport.calls).toHaveLength(2)
     expect(transport.calls[0]?.stdin).toContain('FIRST')
     expect(transport.calls[1]?.stdin).toContain('SECOND')
+  })
+
+  it('operator narrowing a flow to one server sees the runtime target and parameter reach the step', async () => {
+    // Given a two-server task in a flow with a saved parameter value
+    const { store, runs, list, serviceId } = fixture(2)
+    const deploy = store.createTask(taskInput(serviceId, {
+      name: '发布',
+      script: '#!/bin/bash\necho "VERSION=${VERSION}"\n',
+      params: [{ name: 'VERSION', type: 'text', required: true }],
+    }))
+    const flow = store.createTask({
+      owner: { kind: 'service', id: serviceId },
+      name: '发布链',
+      kind: 'flow',
+      script: '',
+      steps: [{ taskId: deploy.id, mode: 'serial', params: { VERSION: 'saved' } }],
+      failure: 'stop',
+    })
+    const transport = new FakeTransport()
+
+    // When the operator runs the flow for one server with a runtime parameter
+    const runner = new TaskRunner(store, runs, transport)
+    const started = await runner.start(flow.id, {
+      params: { VERSION: 'runtime' },
+      serverIds: [list[0]!.id],
+    })
+    const finished = await runner.wait(started.id)
+
+    // Then the runtime target remains the upper bound and the runtime value wins
+    expect(finished?.status).toBe('ok')
+    expect(transport.calls.map(call => call.alias)).toEqual(['test-app1-01'])
+    expect(transport.calls[0]?.command).toContain("VERSION='runtime'")
+  })
+
+  it('operator whose runtime and step targets do not overlap sees the step fail without executing', async () => {
+    // Given a step saved for the second server
+    const { store, runs, list, serviceId } = fixture(2)
+    const inspect = store.createTask(taskInput(serviceId, { name: '巡检' }))
+    const flow = store.createTask({
+      owner: { kind: 'service', id: serviceId },
+      name: '受限巡检',
+      kind: 'flow',
+      script: '',
+      steps: [{ taskId: inspect.id, mode: 'serial', serverIds: [list[1]!.id] }],
+      failure: 'stop',
+    })
+    const transport = new FakeTransport()
+
+    // When the operator narrows the flow to the first server
+    const runner = new TaskRunner(store, runs, transport)
+    const started = await runner.start(flow.id, { serverIds: [list[0]!.id] })
+    const finished = await runner.wait(started.id)
+
+    // Then the empty intersection fails closed and reaches no server
+    expect(finished?.status).toBe('failed')
+    expect(finished?.children?.[0]?.status).toBe('failed')
+    expect(transport.calls).toHaveLength(0)
   })
 
   it('operator with a stop policy sees the remaining steps skipped after a failure', async () => {

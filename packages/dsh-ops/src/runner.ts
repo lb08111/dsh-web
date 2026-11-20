@@ -317,6 +317,19 @@ export class TaskRunner {
   private async startFlow(flow: OpsTask, input: Omit<RunInput, 'taskId'>, notify: boolean): Promise<OpsRun> {
     const steps = flow.steps ?? []
     if (steps.length === 0) throw new Error('this flow has no steps yet')
+    const runtimeServerIds = input.serverIds === undefined || input.serverIds.length === 0
+      ? undefined
+      : input.serverIds
+    if (runtimeServerIds !== undefined) {
+      const reachableIds = new Set<string>()
+      for (const step of steps) {
+        const task = this.store.task(step.taskId)
+        if (task?.kind !== 'script') continue
+        for (const server of this.store.targetsOfTask(task)) reachableIds.add(server.id)
+      }
+      const unknown = runtimeServerIds.filter(id => !reachableIds.has(id))
+      if (unknown.length > 0) throw new Error(`server(s) outside this flow's step scopes: ${unknown.join(', ')}`)
+    }
     const runId = newRunId()
     const run: OpsRun = {
       id: runId,
@@ -324,7 +337,7 @@ export class TaskRunner {
       taskName: flow.name,
       source: input.source ?? 'ui',
       status: 'running',
-      params: {},
+      params: { ...(input.params ?? {}) },
       targets: [],
       children: steps.map(step => {
         const task = this.store.task(step.taskId)
@@ -340,7 +353,7 @@ export class TaskRunner {
     this.runs.create(run)
     const controller = new AbortController()
     this.controllers.set(runId, controller)
-    const execution = this.executeFlow(run, flow, controller.signal, notify)
+    const execution = this.executeFlow(run, flow, input.params ?? {}, runtimeServerIds, controller.signal, notify)
       .catch((error: unknown) => {
         run.status = 'failed'
         run.error = error instanceof Error ? error.message : String(error)
@@ -357,7 +370,14 @@ export class TaskRunner {
   }
 
   /** Execute flow batches: serial steps one by one, adjacent parallel steps together. */
-  private async executeFlow(run: OpsRun, flow: OpsTask, signal: AbortSignal, notify: boolean): Promise<void> {
+  private async executeFlow(
+    run: OpsRun,
+    flow: OpsTask,
+    runtimeParams: Record<string, string>,
+    runtimeServerIds: string[] | undefined,
+    signal: AbortSignal,
+    notify: boolean,
+  ): Promise<void> {
     const batches: FlowStep[][] = []
     for (const step of flow.steps ?? []) {
       const last = batches[batches.length - 1]
@@ -372,8 +392,8 @@ export class TaskRunner {
         continue
       }
       const results = batch.length === 1
-        ? [await this.runFlowStep(run, flow, batch[0], signal)]
-        : await Promise.all(batch.map(step => this.runFlowStep(run, flow, step, signal)))
+        ? [await this.runFlowStep(run, batch[0], runtimeParams, runtimeServerIds, signal)]
+        : await Promise.all(batch.map(step => this.runFlowStep(run, step, runtimeParams, runtimeServerIds, signal)))
       if (results.some(ok => !ok) && (flow.failure ?? 'stop') === 'stop') stopped = true
     }
 
@@ -391,7 +411,13 @@ export class TaskRunner {
   }
 
   /** Run one step's referenced task and mirror its child run status. */
-  private async runFlowStep(run: OpsRun, flow: OpsTask, step: FlowStep, signal: AbortSignal): Promise<boolean> {
+  private async runFlowStep(
+    run: OpsRun,
+    step: FlowStep,
+    runtimeParams: Record<string, string>,
+    runtimeServerIds: string[] | undefined,
+    signal: AbortSignal,
+  ): Promise<boolean> {
     const child = run.children?.find(entry => entry.stepId === step.id)
     if (child === undefined) return true
     if (signal.aborted) {
@@ -413,10 +439,18 @@ export class TaskRunner {
     }
 
     try {
+      const runtimeIds = runtimeServerIds === undefined ? undefined : new Set(runtimeServerIds)
+      const stepIds = step.serverIds === undefined ? undefined : new Set(step.serverIds)
+      const targets = this.store.targetsOfTask(task).filter(server =>
+        (runtimeIds === undefined || runtimeIds.has(server.id))
+        && (stepIds === undefined || stepIds.has(server.id)))
+      if (targets.length === 0) {
+        throw new Error('no target servers remain after applying the flow and step scopes')
+      }
       const started = await this.startRun(task.id, {
-        params: step.params ?? {},
+        params: { ...(step.params ?? {}), ...runtimeParams },
         source: run.source,
-        serverIds: step.serverIds,
+        serverIds: targets.map(server => server.id),
       }, false)
       child.runId = started.id
       this.runs.update(run)
