@@ -15,7 +15,7 @@ CREDENTIALS_FILE=${DSH_REGISTRY_CREDENTIALS:-"$SCRIPT_DIR/registry.credentials"}
 SKIP_LOGIN=false
 INSTALL_DOCKER=true
 DOCKER=(docker)
-PRIVILEGE=()
+USE_SUDO=false
 
 usage() {
   cat <<'HELP'
@@ -63,7 +63,11 @@ done
 [[ $(uname -s) == Linux && $(uname -m) == x86_64 ]] || { echo 'This installer requires Linux amd64.' >&2; exit 1; }
 [[ $PORT =~ ^[1-9][0-9]{0,4}$ ]] && (( PORT <= 65535 )) || { echo 'Invalid published port.' >&2; exit 2; }
 [[ $NAME =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || { echo 'Invalid container name.' >&2; exit 2; }
-if [[ $(id -u) -ne 0 ]] && command -v sudo >/dev/null 2>&1; then PRIVILEGE=(sudo); fi
+if [[ $(id -u) -ne 0 ]] && command -v sudo >/dev/null 2>&1; then USE_SUDO=true; fi
+
+privileged() {
+  if [[ $USE_SUDO == true ]]; then sudo "$@"; else "$@"; fi
+}
 
 download() {
   if command -v curl >/dev/null 2>&1; then
@@ -81,17 +85,17 @@ if ! command -v docker >/dev/null 2>&1; then
   docker_installer=$(mktemp)
   trap 'rm -f "$docker_installer"' EXIT
   download https://get.docker.com "$docker_installer"
-  "${PRIVILEGE[@]}" sh "$docker_installer"
+  privileged sh "$docker_installer"
   rm -f "$docker_installer"
   trap - EXIT
 fi
 
 if ! docker info >/dev/null 2>&1; then
-  if [[ ${#PRIVILEGE[@]} -gt 0 ]] && "${PRIVILEGE[@]}" docker info >/dev/null 2>&1; then
+  if [[ $USE_SUDO == true ]] && sudo docker info >/dev/null 2>&1; then
     DOCKER=(sudo docker)
   else
-    if command -v systemctl >/dev/null 2>&1; then "${PRIVILEGE[@]}" systemctl start docker; fi
-    if ! docker info >/dev/null 2>&1; then DOCKER=("${PRIVILEGE[@]}" docker); fi
+    if command -v systemctl >/dev/null 2>&1; then privileged systemctl start docker; fi
+    if ! docker info >/dev/null 2>&1 && [[ $USE_SUDO == true ]]; then DOCKER=(sudo docker); fi
     "${DOCKER[@]}" info >/dev/null
   fi
 fi
@@ -100,12 +104,12 @@ mkdir -p "$INSTALL_DIR"
 INSTALL_DIR=$(cd "$INSTALL_DIR" && pwd -P)
 if ! command -v flock >/dev/null 2>&1; then
   if command -v apt-get >/dev/null 2>&1; then
-    "${PRIVILEGE[@]}" apt-get update
-    "${PRIVILEGE[@]}" apt-get install -y util-linux
+    privileged apt-get update
+    privileged apt-get install -y util-linux
   elif command -v dnf >/dev/null 2>&1; then
-    "${PRIVILEGE[@]}" dnf install -y util-linux
+    privileged dnf install -y util-linux
   elif command -v yum >/dev/null 2>&1; then
-    "${PRIVILEGE[@]}" yum install -y util-linux
+    privileged yum install -y util-linux
   fi
 fi
 command -v flock >/dev/null 2>&1 || { echo 'The util-linux flock command is required.' >&2; exit 1; }
