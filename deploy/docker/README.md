@@ -21,7 +21,7 @@ bash install.sh --public-url http://192.168.1.20:3080
 
 The installer uses an existing Docker engine or installs Docker through its official installation script. It pulls `crpi-n1l0skbmprpjqh57.cn-shenzhen.personal.cr.aliyuncs.com/cj-aiops-platform/dsh-web:latest`, starts the container, and prints the current browser URL containing the login token. Use that complete URL for the first visit.
 
-Run the same command to update. The default installation directory is `$HOME/dsh-web`; it contains separate `data` and `workspace` directories. The container uses the invoking user's numeric UID and GID to access those bind mounts.
+Run the same command to update. A first installation defaults to `$HOME/dsh-web`, with separate `data` and `workspace` directories, and uses the invoking user's numeric UID and GID. Updates reuse the managed container's existing bind directories and configured user, including when rerun through sudo or a different home directory. Explicit `--data-dir`, `--workspace-dir`, `DSH_DATA_DIR` or `DSH_WORKSPACE_DIR` values override the corresponding directory.
 
 ## Config
 

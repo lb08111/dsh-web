@@ -149,6 +149,27 @@ if ! "${DOCKER[@]}" pull --platform linux/amd64 "$IMAGE"; then
   "${DOCKER[@]}" pull --platform linux/amd64 "$IMAGE"
 fi
 
+RUN_USER="$(id -u):$(id -g)"
+existing=$("${DOCKER[@]}" container inspect --format '{{index .Config.Labels "com.leomind.dsh-web"}}' "$NAME" 2>/dev/null || true)
+BACKUP=
+if [[ -n $existing ]]; then
+  [[ $existing == managed ]] || { echo "Container $NAME belongs to another deployment." >&2; exit 1; }
+  RUN_USER=$("${DOCKER[@]}" container inspect --format '{{.Config.User}}' "$NAME")
+  RUN_USER=${RUN_USER:-0:0}
+  if [[ -z $DATA_DIR ]]; then
+    DATA_DIR=$("${DOCKER[@]}" container inspect --format '{{range .Mounts}}{{if and (eq .Destination "/data") (eq .Type "bind")}}{{.Source}}{{end}}{{end}}' "$NAME")
+    [[ -n $DATA_DIR ]] || { echo 'The managed container has no /data bind mount; specify --data-dir.' >&2; exit 1; }
+  fi
+  if [[ -z $WORKSPACE_DIR ]]; then
+    WORKSPACE_DIR=$("${DOCKER[@]}" container inspect --format '{{range .Mounts}}{{if and (eq .Destination "/workspace") (eq .Type "bind")}}{{.Source}}{{end}}{{end}}' "$NAME")
+    [[ -n $WORKSPACE_DIR ]] || { echo 'The managed container has no /workspace bind mount; specify --workspace-dir.' >&2; exit 1; }
+  fi
+  BACKUP="$NAME-previous-$(date +%s)"
+elif "${DOCKER[@]}" container inspect "$NAME" >/dev/null 2>&1; then
+  echo "Container $NAME belongs to another deployment." >&2
+  exit 1
+fi
+
 DATA_DIR=${DATA_DIR:-"$INSTALL_DIR/data"}
 WORKSPACE_DIR=${WORKSPACE_DIR:-"$INSTALL_DIR/workspace"}
 mkdir -p "$DATA_DIR" "$WORKSPACE_DIR"
@@ -173,16 +194,6 @@ PUBLIC_URL=$("${DOCKER[@]}" run --rm --network none --entrypoint node "$IMAGE" -
     process.exit(1);
   }
 ' "$PUBLIC_URL")
-
-existing=$("${DOCKER[@]}" container inspect --format '{{index .Config.Labels "com.leomind.dsh-web"}}' "$NAME" 2>/dev/null || true)
-BACKUP=
-if [[ -n $existing ]]; then
-  [[ $existing == managed ]] || { echo "Container $NAME belongs to another deployment." >&2; exit 1; }
-  BACKUP="$NAME-previous-$(date +%s)"
-elif "${DOCKER[@]}" container inspect "$NAME" >/dev/null 2>&1; then
-  echo "Container $NAME belongs to another deployment." >&2
-  exit 1
-fi
 
 NEW_ATTEMPTED=false
 PREVIOUS_RENAMED=false
@@ -213,7 +224,7 @@ NEW_ATTEMPTED=true
 "${DOCKER[@]}" run --detach --init --platform linux/amd64 \
   --name "$NAME" --label com.leomind.dsh-web=managed \
   --restart unless-stopped --stop-timeout 30 \
-  --user "$(id -u):$(id -g)" \
+  --user "$RUN_USER" \
   --publish "$BIND_ADDRESS:$PORT:8080" \
   --env "PUBLIC_URL=$PUBLIC_URL" \
   --env TZ=Asia/Shanghai \

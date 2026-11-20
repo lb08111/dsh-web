@@ -18,6 +18,8 @@ The DSH host binds container loopback. A public proxy checks the configured publ
 
 The installer reads the private delivery's registry.credentials as literal data and sends its password through standard input. It serializes updates, retains the two bind-mounted directories, and restarts the previous managed container when a replacement fails startup. Readiness requires the native entry, an empty degradation ledger, the operations tree and the SSH host repository.
 
+When replacing a managed container, the installer adopts its existing `/data` and `/workspace` bind sources unless that directory was explicitly configured. It also preserves the container's configured runtime user. A change in the invoking user's home or sudo context therefore does not select empty default directories or change the application UID and GID.
+
 ## Alternatives considered
 
 Copying the developer machine's node_modules was considered and rejected because native modules and absolute workspace links must match Linux amd64 and the runtime installation. An independent production closure provides a build-time check of those paths.

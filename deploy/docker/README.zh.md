@@ -21,7 +21,7 @@ bash install.sh --public-url http://192.168.1.20:3080
 
 安装器使用已有 Docker 引擎，或通过 Docker 官方安装脚本安装 Docker。随后拉取 `crpi-n1l0skbmprpjqh57.cn-shenzhen.personal.cr.aliyuncs.com/cj-aiops-platform/dsh-web:latest`，启动容器，并输出包含当前登录 token 的浏览器地址。首次访问请使用完整地址。
 
-再次执行同一命令即可更新。默认安装目录为 `$HOME/dsh-web`，其中包含独立的 `data` 和 `workspace` 目录。容器使用调用者的数字 UID 和 GID 访问这两个绑定挂载。
+再次执行同一命令即可更新。首次安装默认使用 `$HOME/dsh-web` 下独立的 `data` 和 `workspace` 目录，运行用户为调用者的数字 UID 和 GID。更新时沿用受管容器已有的绑定目录和运行用户，即使通过 sudo 重跑或主目录发生变化也会保留。显式指定的 `--data-dir`、`--workspace-dir`、`DSH_DATA_DIR` 或 `DSH_WORKSPACE_DIR` 会覆盖对应目录。
 
 ## 配置
 
