@@ -36,7 +36,7 @@ test('copies cover the settings trio for all consumers plus host and http helper
   // shared source and its spec remain in this repository. The plugin-card seat
   // copy has four consumers: the GitHub extension renders inside the board's
   // own settings card now, so it carries no card of its own.
-  // tool-surface.ts adds four copies in host halves (ssh, task-board,
+  // tool-surface.ts adds five copies in host halves (ssh, ops, task-board,
   // task-board-github, agents); they sit at a package root rather than under
   // src/host/, so the bucket below does not claim them. dsh-agents also joined
   // the card trio and the plugin-card seat, which is the same six copies every
@@ -72,7 +72,9 @@ test('copies cover the settings trio for all consumers plus host and http helper
   // with it: mount-once, client telemetry, loopback, http, the package-root
   // vitest setup and the console-output capture. dsh-message-edit was deleted
   // outright, taking its one client telemetry copy with it.
-  // totals below are 127 / 74 / 42.
+  // dsh-ops adds five host helpers (dsh-home, tool-surface, mount-once,
+  // loopback, http), with three included in the host-location bucket below.
+  // totals below are 132 / 74 / 45.
   // dsh-browser-view's real-browser settings card adds seven client copies:
   // the card chrome, form primitives, stylesheet, entry fallback, card seat,
   // segmented control and slider bubble. dsh-task-board-team fills the board's
@@ -80,7 +82,18 @@ test('copies cover the settings trio for all consumers plus host and http helper
   // derivations (chrome, form primitives, stylesheet, segmented control, slider
   // bubble) and deliberately none of the entry-bound form fallback: its fields
   // are written through the board, not a family settings namespace.
-  assert.equal(entries.length, 127)
+  assert.equal(entries.length, 132)
+  const opsCopies = entries
+    .filter(entry => entry.target.includes('/packages/dsh-ops/'))
+    .map(entry => entry.target.slice(entry.target.indexOf('packages/dsh-ops/')))
+    .sort()
+  assert.deepEqual(opsCopies, [
+    'packages/dsh-ops/src/dsh-home.ts',
+    'packages/dsh-ops/src/http.ts',
+    'packages/dsh-ops/src/loopback.ts',
+    'packages/dsh-ops/src/mount-once.ts',
+    'packages/dsh-ops/src/tool-surface.ts',
+  ])
   const clientTrio = entries.filter(entry => entry.target.includes('/src/client/'))
   assert.equal(clientTrio.length, 74)
   const hostCopies = entries.filter(entry => entry.target.includes('/src/host/')
@@ -90,7 +103,7 @@ test('copies cover the settings trio for all consumers plus host and http helper
     || entry.target.includes('/src/pair-access.ts')
     || entry.target.includes('/src/agent/')
     || entry.target.endsWith('/packages/dsh-task-board/src/http.ts'))
-  assert.equal(hostCopies.length, 42)
+  assert.equal(hostCopies.length, 45)
 })
 
 test('checkSync detects drift and applySync repairs it', async () => {

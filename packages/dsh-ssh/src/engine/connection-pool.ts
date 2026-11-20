@@ -6,7 +6,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import type { Duplex } from 'node:stream'
 import { Client, type ConnectConfig } from 'ssh2'
-import type { ExecResult, SshHostEntry } from '../protocol.ts'
+import type { ExecResult, ExecStreamOptions, ExecStreamResult, SshHostEntry } from '../protocol.ts'
 import { expandHome, normalizeAgentPath, type HostStore } from '../store.ts'
 import { startProxyCommand, type ProxyTarget } from './proxy-command.ts'
 
@@ -632,4 +632,112 @@ export async function execCommand(engine: PoolEngine, alias: string, command: st
       })
     })
   })
+}
+/**
+ * Run one command on `alias` while streaming stdout/stderr to callbacks and
+ * writing an optional stdin payload (scripts go through stdin, never through
+ * a shell string). Streaming is attempted once: a reconnect could replay a
+ * non-idempotent command whose output the caller has already consumed.
+ */
+export async function execStreamCommand(
+  engine: PoolEngine,
+  alias: string,
+  command: string,
+  options: ExecStreamOptions = {},
+): Promise<ExecStreamResult> {
+  const started = Date.now()
+  const budget = options.timeoutMs !== undefined && options.timeoutMs > 0
+    ? options.timeoutMs
+    : engine.opts.defaultExecTimeoutMs
+  return withClient(engine, alias, async (client) => {
+    return await new Promise<ExecStreamResult>((resolve, reject) => {
+      let aborted = options.signal?.aborted === true
+      let kill = (): void => { /* channel not open yet */ }
+      const onAbort = (): void => {
+        aborted = true
+        kill()
+      }
+      if (options.signal !== undefined && !options.signal.aborted) {
+        options.signal.addEventListener('abort', onAbort, { once: true })
+      }
+      client.exec(command, (error, stream) => {
+        if (error !== undefined) {
+          options.signal?.removeEventListener('abort', onAbort)
+          reject(error)
+          return
+        }
+        kill = (): void => {
+          try { stream.signal('KILL') } catch { /* channel gone */ }
+          try { stream.close() } catch { /* channel gone */ }
+        }
+        // The abort may already have arrived while this channel opened.
+        if (aborted) kill()
+        let timedOut = false
+        let settled = false
+        const cleanup = (): void => {
+          clearTimeout(timer)
+          options.signal?.removeEventListener('abort', onAbort)
+        }
+        const cancelledResult = (): ExecStreamResult => ({
+          exitCode: null,
+          timedOut: false,
+          durationMs: Date.now() - started,
+          error: 'command cancelled by the caller',
+        })
+        const finish = (result: ExecStreamResult): void => {
+          if (settled) return
+          settled = true
+          cleanup()
+          resolve(result)
+        }
+        const fail = (error: unknown): void => {
+          if (settled) return
+          settled = true
+          cleanup()
+          reject(error instanceof Error ? error : new Error(String(error)))
+        }
+        const timer = setTimeout(() => {
+          timedOut = true
+          kill()
+          // The peer may never ack the channel close: settle at the deadline.
+          finish({
+            exitCode: null,
+            timedOut: true,
+            durationMs: Date.now() - started,
+            error: 'command timed out after ' + budget + ' ms',
+          })
+        }, budget)
+        stream.on('data', (chunk: Buffer) => { options.onStdout?.(chunk.toString('utf8')) })
+        stream.stderr.on('data', (chunk: Buffer) => { options.onStderr?.(chunk.toString('utf8')) })
+        stream.on('close', (code: number | null) => {
+          if (settled) return
+          if (aborted) {
+            finish(cancelledResult())
+            return
+          }
+          if (typeof code !== 'number' && !timedOut) {
+            fail(new Error('ssh: connection lost mid-flight (channel closed without an exit status)'))
+            return
+          }
+          finish({ exitCode: code, timedOut, durationMs: Date.now() - started })
+        })
+        stream.on('error', (streamError: Error) => {
+          if (settled) return
+          if (aborted) {
+            finish(cancelledResult())
+            return
+          }
+          fail(streamError)
+        })
+        // Scripts and small payloads go through stdin; the channel is closed
+        // for writing immediately after the payload so the remote shell sees
+        // EOF and can exit.
+        if (options.stdin !== undefined && options.stdin !== '') {
+          stream.end(options.stdin)
+        } else {
+          stream.end()
+        }
+      })
+    })
+  }, 1, options.signal)
 }

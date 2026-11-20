@@ -52,7 +52,10 @@ patchFrom:
   # 真实包），与官方行名册和独立安装行 id（task-board-remote）都不相交，因此不需要
   # familyIds 覆盖。
   - ../dsh-task-board-remote
+  # dsh-ops 依赖 dsh-ssh 提供的 sshTransport 服务（树与任务执行都经这条传输面），
+  # 排在 SSH 之后只是让提供方先就位；ops 自己的行 id 是 web-ui-ops。
   - ../dsh-ssh
+  - ../dsh-ops
   - ../dsh-liangshen
   - ../dsh-skill-explorer
   - ../dsh-usage
@@ -89,7 +92,10 @@ deps:
   - ../dsh-remote-bridge
   # 与 patchFrom 同序：看板的远程能力面行紧跟在桥之后（它绑桥的扩展缝）。
   - ../dsh-task-board-remote
+  # dsh-ops 依赖 dsh-ssh 提供的 sshTransport 服务（树与任务执行都经这条传输面），
+  # 排在 SSH 之后只是让提供方先就位；ops 自己的行 id 是 web-ui-ops。
   - ../dsh-ssh
+  - ../dsh-ops
   - ../dsh-liangshen
   - ../dsh-skill-explorer
   - ../dsh-usage

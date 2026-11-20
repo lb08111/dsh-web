@@ -64,6 +64,13 @@ function handleCommand(command: string, stream: ClientChannel): void {
     stderrWriter.write('hello err\n')
     stream.exit(0)
     stream.close()
+  } else if (command === 'cat-stdin') {
+    // Echo the client's stdin back once the channel is half-closed: the
+    // streamed-exec path writes a script/payload through stdin and reads the
+    // remote output as it arrives.
+    let body = ''
+    stream.on('data', (chunk: Buffer) => { body += chunk.toString('utf8') })
+    stream.on('end', () => { respond(body, 0) })
   } else if (command === 'exit 7') respond('', 7)
   else if (command === 'true') respond('', 0)
   else if (command === 'hang') {

@@ -10,6 +10,7 @@ import { ru as agents } from './agents.ts'
 import { ru as browserView } from './browser-view.ts'
 import { ru as liangshen } from './liangshen.ts'
 import { ru as market } from './market.ts'
+import { ru as ops } from './ops.ts'
 import { ru as pet } from './pet.ts'
 import { ru as pluginManager } from './plugin-manager.ts'
 import { ru as presetCenter } from './preset-center.ts'
@@ -30,6 +31,7 @@ export const ruDictionaries: Record<string, Record<string, string>> = {
   'browser-view': browserView,
   'liangshen': liangshen,
   'dsh-web-ui-market': market,
+  'dsh-ops': ops,
   'pet': pet,
   'settings.pluginManager': pluginManager,
   'dsh-web-ui-preset-center': presetCenter,

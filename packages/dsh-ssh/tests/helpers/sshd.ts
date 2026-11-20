@@ -84,7 +84,9 @@ export class TestSshd {
       stdio: ['ignore', 'ignore', 'pipe'],
     })
     spawned.push(child)
-    // -e sends logs to stderr; capture them so failures are diagnosable.
+    // -e sends logs to stderr; keep the destination open until stderr reaches
+    // EOF. sshd can emit diagnostics after it starts listening, and pipe owns
+    // closing the log stream when the child exits.
     child.stderr?.pipe(logStream)
     let spawnError: Error | undefined
     child.once('error', (error) => { spawnError = error })
@@ -94,7 +96,6 @@ export class TestSshd {
         : undefined)
     } catch (error) {
       child.kill()
-      logStream.end()
       let detail = ''
       try {
         detail = readFileSync(log, 'utf8').slice(0, 2000)
@@ -102,7 +103,6 @@ export class TestSshd {
       rmSync(dir, { recursive: true, force: true })
       throw new Error(`sshd failed to start: ${String(error)} ${detail}`, { cause: error })
     }
-    logStream.end()
     return new TestSshd(port, join(dir, 'client'), root, child, dir)
   }
 

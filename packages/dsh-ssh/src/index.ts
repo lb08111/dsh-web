@@ -19,6 +19,7 @@ import { makeRoutes } from './routes.ts'
 import { HostStore } from './store.ts'
 import { sshClusterTool, sshDownloadTool, sshExecTool, sshListTool, sshTunnelTool, sshUploadTool } from './tools.ts'
 import { mountOnce } from './mount-once.ts'
+import { createSshTransport, SSH_TRANSPORT_SERVICE } from './transport.ts'
 import { PLUGIN_TOOL_SECTION_ORDERS, visibleToolText } from './tool-surface.ts'
 
 /** Stable cordis plugin name. */
@@ -149,6 +150,14 @@ function applyImpl(ctx: Context, config?: ResolvedConfig): void {
   const store = new HostStore()
   const engine = new SshEngine(store, { connectTimeoutMs: readConfigField(config?.connectTimeoutMs, DEFAULT_CONNECT_TIMEOUT_MS) })
   ctx.effect(() => () => { engine.dispose() }, 'dsh-ssh: engine')
+
+  // The transport face is what a sibling host plugin (the ops workspace) drives
+  // instead of importing this package's internals. A hand-built test context
+  // may implement no service registry; the SSH surfaces still mount.
+  if (typeof (ctx as { provide?: unknown }).provide === 'function') {
+    (ctx as unknown as { provide(name: string, value: unknown): void })
+      .provide(SSH_TRANSPORT_SERVICE, createSshTransport(engine))
+  }
 
   const resolve = (): { announceToAgent: boolean; enabled: boolean } => {
     let enabled = readConfigField(config?.enabled, DEFAULT_ENABLED)

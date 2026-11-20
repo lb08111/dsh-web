@@ -6,11 +6,12 @@
  * class composes them behind one new SshEngine instance per plugin apply.
  */
 
-import type { ClusterResult, ExecResult, SshHostSummary, TestResult, TransferProgress, TunnelInfo } from './protocol.ts'
+import type { ClusterResult, ExecResult, ExecStreamOptions, ExecStreamResult, SshHostSummary, TestResult, TransferProgress, TunnelInfo } from './protocol.ts'
 import type { HostStore } from './store.ts'
 import {
   DEFAULTS,
   execCommand,
+  execStreamCommand,
   disposeRecord,
   sweepPool,
   type EngineOptions,
@@ -86,6 +87,15 @@ export class SshEngine {
   /** Run one command on `alias` (reusing the pooled connection). */
   async exec(alias: string, command: string, timeoutMs?: number, signal?: AbortSignal): Promise<ExecResult> {
     return execCommand(this, alias, command, timeoutMs, signal)
+  }
+
+  /**
+   * Run one command while streaming stdout/stderr to callbacks and writing an
+   * optional stdin payload. Attempted once: a reconnect could replay a
+   * non-idempotent command whose streamed output the caller already consumed.
+   */
+  async execStream(alias: string, command: string, options?: ExecStreamOptions): Promise<ExecStreamResult> {
+    return execStreamCommand(this, alias, command, options)
   }
 
   /** Run one command against many hosts concurrently. */

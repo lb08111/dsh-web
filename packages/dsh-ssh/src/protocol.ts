@@ -245,3 +245,31 @@ export const SSH_API = {
 export type TransferStreamLine =
   | { type: 'progress'; progress: TransferProgress }
   | { type: 'result'; ok: boolean; transferredBytes?: number; error?: string }
+
+/**
+ * Options for one streamed command. Streaming is deliberately not replayed on
+ * a broken connection: the caller consumes output as it arrives, so a retry
+ * could run a non-idempotent command twice.
+ */
+export interface ExecStreamOptions {
+  /** Payload written to the channel's stdin before it is closed (scripts). */
+  stdin?: string
+  /** Remote command timeout in milliseconds (engine default when omitted). */
+  timeoutMs?: number
+  /** Caller cancellation; aborting closes the remote channel. */
+  signal?: AbortSignal
+  /** Decoded stdout chunks, in arrival order. */
+  onStdout?: (chunk: string) => void
+  /** Decoded stderr chunks, in arrival order. */
+  onStderr?: (chunk: string) => void
+}
+
+/** Outcome of one streamed command. */
+export interface ExecStreamResult {
+  /** Remote exit code, or null when the channel ended without one. */
+  exitCode: number | null
+  timedOut: boolean
+  durationMs: number
+  /** Present when the command was cancelled, timed out or failed. */
+  error?: string
+}

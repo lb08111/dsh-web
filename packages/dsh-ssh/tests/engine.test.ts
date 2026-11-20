@@ -222,6 +222,23 @@ describe('exec', () => {
     }
   })
 
+  it('operator streaming a payload through stdin sees output chunks and a zero exit', async () => {
+    // Given a host whose shim echoes stdin back once the channel half-closes
+    addHost('exec-stream')
+    const chunks: string[] = []
+
+    // When the operator runs a streamed command with a stdin payload
+    const result = await engine.execStream('exec-stream', 'cat-stdin', {
+      stdin: '#!/bin/bash\necho hi\n',
+      onStdout: chunk => chunks.push(chunk),
+    })
+
+    // Then the streamed stdout is that payload and the exit code is zero
+    expect(result.exitCode).toBe(0)
+    expect(result.timedOut).toBe(false)
+    expect(chunks.join('')).toBe('#!/bin/bash\necho hi\n')
+  })
+
   it('fails cleanly for unknown aliases', async () => {
     await expect(engine.exec('nope', 'true')).rejects.toThrow(/not found/)
   })

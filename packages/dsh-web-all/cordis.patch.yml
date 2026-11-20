@@ -64,6 +64,15 @@
     - id: web-ui-ssh
       name: '@linxin666/dsh-ssh'
 
+# from ../dsh-ops
+- insert:
+    - id: web-ui-ops
+      name: '@linxin666/dsh-ops'
+
+# from ../dsh-ops (patch row ui-brand-official)
+- id: ui-brand-official
+  disabled: true
+
 # from ../dsh-liangshen
 - insert:
     - id: web-ui-liangshen

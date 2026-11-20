@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -149,7 +149,11 @@ async function ask(harness: ConnectionHarness, id: number, payload: Record<strin
 describe('attachment path over protocol v1', () => {
   let root = ''
   beforeAll(async () => {
-    root = await mkdtemp(join(tmpdir(), 'dsh-attachment-'))
+    const created = await mkdtemp(join(tmpdir(), 'dsh-attachment-'))
+    // macOS exposes its temp root through /var, while the path guard compares
+    // canonical paths. Fixture files use that root, and explicit symlink cases
+    // below continue to exercise refusal of paths that resolve elsewhere.
+    root = await realpath(created)
   })
   afterAll(async () => {
     await rm(root, { recursive: true, force: true })

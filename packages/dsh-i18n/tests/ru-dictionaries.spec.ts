@@ -5,15 +5,12 @@ import { ruDictionaries } from '../src/client/ru/index.ts'
 const CJK_RE = /[\u3000-\u303f\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff00-\uffef]/
 
 describe('ru dictionaries internal consistency', () => {
-  it('covers seventeen non-empty namespaces with string values', () => {
-    // One per family package that ships a client locale namespace. The count
-    // moved from 21 to 20 when dsh-remote-web-ui left the aggregate family: its
-    // ru dictionary was deleted with it, so no namespace is mirrored here. It
-    // moved from 20 to 19 when dsh-git-graph was retired from the family, from
-    // 19 to 18 when the dsh-update package was deleted outright, and from 18
-    // to 17 when the dsh-message-edit package was deleted outright.
+  it('covers eighteen non-empty namespaces with string values', () => {
+    // One namespace per mirrored family surface, including dsh-ops. The pet
+    // and preset-center dictionaries also support the external family packages.
     const namespaces = Object.keys(ruDictionaries)
-    expect(namespaces).toHaveLength(17)
+    expect(namespaces).toHaveLength(18)
+    expect(namespaces).toContain('dsh-ops')
     for (const [ns, dict] of Object.entries(ruDictionaries)) {
       const keys = Object.keys(dict)
       expect(keys.length, ns).toBeGreaterThan(0)

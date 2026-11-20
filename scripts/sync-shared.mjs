@@ -122,6 +122,7 @@ const MANIFEST = [
       'packages/dsh-task-board/src/dsh-home.ts',
       'packages/dsh-plugin-manager/src/host/dsh-home.ts',
       'packages/dsh-ssh/src/dsh-home.ts',
+      'packages/dsh-ops/src/dsh-home.ts',
       'packages/dsh-web-settings/src/dsh-home.ts',
       'packages/dsh-market/src/dsh-home.ts',
       'packages/dsh-usage/src/dsh-home.ts',
@@ -138,6 +139,7 @@ const MANIFEST = [
     source: 'shared/host/tool-surface.ts',
     targets: [
       'packages/dsh-ssh/src/tool-surface.ts',
+      'packages/dsh-ops/src/tool-surface.ts',
       'packages/dsh-task-board/src/tool-surface.ts',
       'packages/dsh-task-board-github/src/tool-surface.ts',
       'packages/dsh-agents/src/tool-surface.ts',
@@ -148,6 +150,7 @@ const MANIFEST = [
     source: 'shared/host/mount-once.ts',
     targets: [
       'packages/dsh-ssh/src/mount-once.ts',
+      'packages/dsh-ops/src/mount-once.ts',
       'packages/dsh-remote-bridge/src/mount-once.ts',
       'packages/dsh-liangshen/src/mount-once.ts',
       'packages/dsh-task-board/src/mount-once.ts',
@@ -197,7 +200,7 @@ const MANIFEST = [
   {
     file: 'loopback.ts',
     source: 'shared/host/loopback.ts',
-    targets: ['packages/dsh-ssh/src/loopback.ts', 'packages/dsh-task-board/src/loopback.ts', 'packages/dsh-task-board-github/src/loopback.ts', 'packages/dsh-skill-explorer/src/loopback.ts', 'packages/dsh-plugin-manager/src/host/loopback.ts', 'packages/dsh-market/src/loopback.ts', 'packages/dsh-usage/src/host/loopback.ts', 'packages/dsh-session-archive/src/host/loopback.ts', 'packages/dsh-browser-view/src/host/loopback.ts', 'packages/dsh-diagrams/src/host/loopback.ts'],
+    targets: ['packages/dsh-ssh/src/loopback.ts', 'packages/dsh-ops/src/loopback.ts', 'packages/dsh-task-board/src/loopback.ts', 'packages/dsh-task-board-github/src/loopback.ts', 'packages/dsh-skill-explorer/src/loopback.ts', 'packages/dsh-plugin-manager/src/host/loopback.ts', 'packages/dsh-market/src/loopback.ts', 'packages/dsh-usage/src/host/loopback.ts', 'packages/dsh-session-archive/src/host/loopback.ts', 'packages/dsh-browser-view/src/host/loopback.ts', 'packages/dsh-diagrams/src/host/loopback.ts'],
   },
   {
     file: 'http.ts',
@@ -207,6 +210,7 @@ const MANIFEST = [
       'packages/dsh-skill-explorer/src/http.ts',
       'packages/dsh-web-settings/src/http.ts',
       'packages/dsh-ssh/src/http.ts',
+      'packages/dsh-ops/src/http.ts',
       'packages/dsh-plugin-manager/src/host/http.ts',
       'packages/dsh-task-board/src/http.ts',
       'packages/dsh-task-board-github/src/host/http.ts',

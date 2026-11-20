@@ -30,6 +30,7 @@
  */
 export const PLUGIN_TOOL_SECTION_ORDERS = {
   ssh: 150,
+  ops: 170,
   'task-board': 200,
   agents: 220,
 } as const
