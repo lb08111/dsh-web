@@ -49,7 +49,7 @@ docker buildx build --platform linux/amd64 \
   --load .
 ```
 
-The Docker build installs Linux dependencies from the manifests and lockfile, compiles the workspace, deploys the production closure, and pins shared SDK imports to the official runtime installation. The image contains the published satellite dependencies declared by the aggregate package.
+The Docker build compiles the workspace on BuildKit's native build platform with the same official SDK version. It removes existing package libraries before compilation and transfers only verified portable `packages/*/lib` outputs, including declarations, copied browser assets and shell metadata. A separate target-platform stage installs production dependencies from the lockfile, creates the production closure, and pins shared SDK imports to its official runtime installation. Build-platform dependency trees never enter the runtime image. The image contains the published satellite dependencies declared by the aggregate package, including their target-platform native dependencies.
 
 ## Security model
 
