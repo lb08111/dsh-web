@@ -21,11 +21,11 @@ function link(target, destination) {
   symlinkSync(target, destination)
 }
 
-function pinDependencies(directory) {
+function pinDependencies(directory, isModulesDirectory = false) {
   const actual = realpathSync(directory)
   if (visited.has(actual) || (actual !== plugins && !actual.startsWith(plugins + '/'))) return
   visited.add(actual)
-  const modules = join(directory, 'node_modules')
+  const modules = isModulesDirectory ? directory : join(directory, 'node_modules')
   if (!existsSync(modules)) return
   const scope = join(modules, '@deepseek-ai')
   if (existsSync(scope)) {
@@ -39,7 +39,7 @@ function pinDependencies(directory) {
     const path = join(modules, entry.name)
     if (entry.name === '.pnpm') {
       for (const child of readdirSync(path, { withFileTypes: true })) {
-        if (child.isDirectory()) pinDependencies(join(path, child.name))
+        if (child.isDirectory()) pinDependencies(join(path, child.name), child.name === 'node_modules')
       }
     } else if (entry.name.startsWith('@')) {
       for (const child of readdirSync(path)) pinDependencies(join(path, child))
