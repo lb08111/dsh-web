@@ -201,6 +201,17 @@ rows:
 inactive:
   - web-ui-ssh
   - web-ui-skill-explorer
+  # AI-TEST 管理台只保留测试管理与运维工作区：任务看板及其提供方、智能体小队
+  # 默认不挂载侧栏入口；操作员仍可在插件管理中按需开启。
+  - web-ui-task-board
+  - web-ui-task-board-github
+  - web-ui-task-board-team
+  - web-ui-task-board-remote
+  - web-ui-agents
+# 官方 dsh-web-app 会挂载“自动化任务”入口；本产品默认关闭该浏览器入口，
+# Host Schedule 服务保留，操作员可在插件管理中单独重新开启。
+retire:
+  - ui-schedule
 # 归档设置入口（2026-10-27 共存决策）：dsh-session-archive 以自己的 section id
 # dsh-session-archive 与 order 25 注册，紧邻官方 archived-sessions 入口而不占用它。
 # 设置外壳对每条注册各渲染一个导航项、不合并同 id 的 section，并按「同一 id + 同一

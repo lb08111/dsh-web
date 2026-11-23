@@ -120,6 +120,22 @@
   disabled: true
 - id: web-ui-skill-explorer
   disabled: true
+- id: web-ui-task-board
+  disabled: true
+- id: web-ui-task-board-github
+  disabled: true
+- id: web-ui-task-board-team
+  disabled: true
+- id: web-ui-task-board-remote
+  disabled: true
+- id: web-ui-agents
+  disabled: true
+
+# superseded foreign rows: this aggregate replaces these rows from another bundle with
+# its own entry, so the composition does not show two near-identical first-level entries.
+# A user-layer "disabled: false" override still wins.
+- id: ui-schedule
+  disabled: true
 
 # external bundle: @linxin666/dsh-client-ui-community-plugins
 

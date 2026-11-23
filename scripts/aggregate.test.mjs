@@ -249,6 +249,28 @@ test('web-ui-all ships the opt-in family rows disabled by default', () => {
   }
 })
 
+test('test management hides schedule, task-board, and agent navigation by default', () => {
+  // This product surface is limited to the test-management and operations
+  // workspaces. Keep the functionality installed so an operator can opt back
+  // in from the plugin manager, but do not put these first-level entries in a
+  // fresh deployment's sidebar.
+  const patch = readFileSync(join(ROOT, 'packages/dsh-web-all/cordis.patch.yml'), 'utf8')
+  for (const id of [
+    'ui-schedule',
+    'web-ui-task-board',
+    'web-ui-task-board-github',
+    'web-ui-task-board-team',
+    'web-ui-task-board-remote',
+    'web-ui-agents',
+  ]) {
+    assert.match(
+      patch,
+      new RegExp('^- id: ' + id + '\\n  disabled: true$', 'm'),
+      'test management must hide the default navigation row: ' + id,
+    )
+  }
+})
+
 test('family rows mount the real plugin package, never a shell subpath with a config block', () => {
   // Issue #1901: a family row names its plugin package directly. That is what
   // makes the loader serve the package's own browser half, so the row needs no
@@ -272,16 +294,11 @@ test('family rows mount the real plugin package, never a shell subpath with a co
   assert.ok(checked > 10, 'expected the generated patch to carry the family rows, found ' + checked)
 })
 
-test('web-ui-all declares no retire target the current cohort no longer mounts', () => {
-  // The official bundles alpha.2 ships mount no row this aggregate supersedes:
-  // the official archived-sessions page (`ui-settings-unarchive-sessions`) is
-  // gone from dsh-web-app, so a retire override for it changed nothing while
-  // making the loader warn `patch: entry ... not found` on every profile boot.
-  // `dsh-session-archive` seats its own `dsh-session-archive` section id at
-  // order 25 (2026-10-27 coexistence decision), so no archive seat is taken
-  // over and no foreign row needs retiring. Declaring a target again requires
-  // proving the foreign row exists in the SAME cohort with
-  // `dsh --profile <name> --dump-config`, then updating this test.
+test('web-ui-all only retires foreign rows the installed cohort really mounts', () => {
+  // A retire override for a missing row makes the loader warn `patch: entry ...
+  // not found` on every boot. Every target therefore has to be present in the
+  // official bundle patch shipped by the same dependency cohort. The archived-
+  // sessions row remains absent and is the negative control for this contract.
   const yml = readFileSync(join(ROOT, 'packages/dsh-web-all/aggregate.yml'), 'utf8')
   let section = null
   const retire = []
@@ -295,9 +312,20 @@ test('web-ui-all declares no retire target the current cohort no longer mounts',
     }
     if (section === 'retire' && line.startsWith('- ')) retire.push(line.slice(2).trim())
   }
-  assert.deepEqual(retire, [], 'retire targets must be verified against the installed cohort before being declared')
+  const official = readFileSync(
+    join(ROOT, 'node_modules/@deepseek-ai/dsh-web-app/cordis.patch.yml'),
+    'utf8',
+  )
+  for (const id of retire) {
+    assert.match(
+      official,
+      new RegExp('^ {4}- id: ' + id + '$', 'm'),
+      'retire target is not mounted by the installed dsh-web-app cohort: ' + id,
+    )
+  }
   const patch = readFileSync(join(ROOT, 'packages/dsh-web-all/cordis.patch.yml'), 'utf8')
-  assert.doesNotMatch(patch, /^- id: ui-settings-unarchive-sessions$/m, 'the aggregate must not patch a foreign row no bundle mounts')
+  assert.doesNotMatch(patch, /^- id: ui-settings-unarchive-sessions$/m, 'the aggregate must not patch the absent archived-sessions row')
+  assert.doesNotMatch(official, /^ {4}- id: ui-settings-unarchive-sessions$/m, 'the fixture assumes the archived-sessions row is absent')
 })
 
 test('web-ui-all leaves the deprecated @morlay/better-session integration out', () => {
