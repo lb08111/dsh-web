@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process'
 import { chmodSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { bootstrap } from './bootstrap.mjs'
+import { isAllowedBrowserRequest } from './access-policy.mjs'
 
 const publicUrl = new URL(process.env.PUBLIC_URL || 'http://127.0.0.1:3080')
 if (!['http:', 'https:'].includes(publicUrl.protocol) || publicUrl.username || publicUrl.password || publicUrl.pathname !== '/' || publicUrl.search || publicUrl.hash) {
@@ -12,11 +13,8 @@ const upstreamAuthority = '127.0.0.1:3080'
 const upstreamOrigin = `http://${upstreamAuthority}`
 bootstrap()
 
-function trusted(request) {
-  if (request.headers.host?.toLowerCase() !== publicUrl.host.toLowerCase()) return false
-  const origin = request.headers.origin
-  if (origin !== undefined && origin !== publicUrl.origin) return false
-  return request.headers['sec-fetch-site'] !== 'cross-site'
+function trusted(request, pathname) {
+  return isAllowedBrowserRequest(request, publicUrl, pathname)
 }
 
 function upstreamHeaders(request) {
@@ -60,7 +58,7 @@ const server = http.createServer(async (request, response) => {
     return
   }
   const login = request.method === 'GET' && path.pathname === '/' && path.searchParams.has('token')
-  if (!trusted(request) && !(login && request.headers.host?.toLowerCase() === publicUrl.host.toLowerCase() && request.headers.origin === undefined)) {
+  if (!trusted(request, path.pathname) && !(login && request.headers.host?.toLowerCase() === publicUrl.host.toLowerCase() && request.headers.origin === undefined)) {
     reject(response, 403)
     return
   }
