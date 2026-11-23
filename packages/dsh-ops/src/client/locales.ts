@@ -6,8 +6,8 @@
  */
 
 export const zh = {
-  'entry.label': '运维',
-  'panel.title': '运维工作台',
+  'entry.label': '测试管理平台',
+  'panel.title': '测试管理平台',
   'panel.back': '返回对话',
   'tree.newSystem': '新建系统',
   'tree.search': '搜索系统、服务、服务器、任务',
@@ -50,8 +50,8 @@ export const zh = {
   'common.color': '卡片颜色',
   'common.inherit': '跟随上级',
   'panel.backLevel': '返回',
-  'brand.suffix': '管理台',
-  'brand.title': 'AI-TEST 管理台',
+  'brand.suffix': '管理平台',
+  'brand.title': '测试管理平台',
   'system.stats': '{services} 个服务 · {servers} 台服务器 · {tasks} 个任务',
   'system.services': '服务',
   'system.empty': '这个系统还没有服务',
@@ -174,8 +174,8 @@ export const zh = {
 export type OpsKey = keyof typeof zh
 
 export const en: Record<OpsKey, string> = {
-  'entry.label': 'Ops',
-  'panel.title': 'Ops Workspace',
+  'entry.label': 'Test Ops',
+  'panel.title': 'Test Management',
   'panel.back': 'Back to chat',
   'tree.newSystem': 'New system',
   'tree.search': 'Search systems, services, servers, tasks',
@@ -218,8 +218,8 @@ export const en: Record<OpsKey, string> = {
   'common.color': 'Card color',
   'common.inherit': 'Inherit',
   'panel.backLevel': 'Back',
-  'brand.suffix': 'Console',
-  'brand.title': 'AI-TEST Console',
+  'brand.suffix': 'Platform',
+  'brand.title': 'Test Management Platform',
   'system.stats': '{services} services · {servers} servers · {tasks} tasks',
   'system.services': 'Services',
   'system.empty': 'This system has no services yet',

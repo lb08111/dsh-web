@@ -18,6 +18,12 @@ import { en, setRuntimeTranslate, zh, type OpsKey } from './locales.ts'
 import { registerOpsPanel } from './native-panel.tsx'
 import { OpsController } from './panel/controller.ts'
 
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface LocaleNamespaceMap {
+    'dsh-ops': OpsKey
+  }
+}
+
 /** Locale namespace this plugin owns. */
 const NS = 'dsh-ops'
 

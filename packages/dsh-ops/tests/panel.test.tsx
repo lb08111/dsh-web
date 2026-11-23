@@ -74,7 +74,7 @@ describe('ops panel', () => {
 
     // Then the landing page is a card dashboard with the system card
     let text = container.textContent ?? ''
-    expect(text).toContain('运维工作台')
+    expect(text).toContain('测试管理平台')
     expect(text).toContain('交易系统')
     expect(text).toContain('订单服务')
 

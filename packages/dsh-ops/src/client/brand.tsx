@@ -1,7 +1,7 @@
 /**
  * Product branding for this deployment: the sidebar brand slots are owned by
  * the official brand plugin, which this bundle disables; these components
- * take their place and paint "AI-TEST 管理台" instead of the DeepSeek wordmark.
+ * take their place and paint "测试管理平台" instead of the DeepSeek wordmark.
  *
  * The registration lives behind the same slots API the official plugin uses
  * (`sidebar.brand.mark` / `sidebar.brand.name`), so it survives shell updates.
@@ -34,7 +34,7 @@ function AiTestMark({ size = 24 }: { size?: number }) {
         lineHeight: 1,
       }}
     >
-      AI
+      测
     </span>
   )
 }
@@ -62,7 +62,7 @@ function AiTestName() {
           color: 'transparent',
         }}
       >
-        AI-TEST
+        测试
       </span>
       <span
         style={{
