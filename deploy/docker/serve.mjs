@@ -4,6 +4,7 @@ import { chmodSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { bootstrap } from './bootstrap.mjs'
 import { isAllowedBrowserRequest } from './access-policy.mjs'
+import { relaxAuthCookieSameSite } from './auth-cookie.mjs'
 
 const publicUrl = new URL(process.env.PUBLIC_URL || 'http://127.0.0.1:3080')
 if (!['http:', 'https:'].includes(publicUrl.protocol) || publicUrl.username || publicUrl.password || publicUrl.pathname !== '/' || publicUrl.search || publicUrl.hash) {
@@ -68,6 +69,7 @@ const server = http.createServer(async (request, response) => {
   }
   const proxy = http.request({ hostname: '127.0.0.1', port: 3080, path: request.url, method: request.method, headers: upstreamHeaders(request) }, result => {
     const headers = { ...result.headers }
+    if (headers['set-cookie']) headers['set-cookie'] = relaxAuthCookieSameSite(headers['set-cookie'])
     if (publicUrl.protocol === 'https:' && headers['set-cookie']) {
       headers['set-cookie'] = headers['set-cookie'].map(cookie => /;\s*secure(?:;|$)/i.test(cookie) ? cookie : cookie + '; Secure')
     }

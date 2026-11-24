@@ -63,7 +63,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=target-host /opt/dsh/runtime /opt/dsh/runtime
 COPY --from=target-package /opt/dsh/plugins /opt/dsh/plugins
-COPY deploy/docker/bootstrap.mjs deploy/docker/access-policy.mjs deploy/docker/serve.mjs deploy/docker/healthcheck.mjs /opt/dsh/container/
+COPY deploy/docker/bootstrap.mjs deploy/docker/access-policy.mjs deploy/docker/auth-cookie.mjs deploy/docker/serve.mjs deploy/docker/healthcheck.mjs /opt/dsh/container/
 ENV NODE_ENV=production \
     HOME=/data/home \
     DSH_HOME=/data \
